@@ -1,16 +1,12 @@
-# Import the Flask library
 from flask import Flask, request, jsonify
 import logging
+from control_center import ControlCenter
 
-# Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Create a Flask application instance
-# Flask is a micro web framework for Python.
 app = Flask(__name__)
+control_center = ControlCenter
 
-# Define the route for the '/messages' endpoint
-# This route will only accept POST requests.
 @app.route('/messages', methods=['POST'])
 def receive_message():
     """
@@ -37,7 +33,7 @@ def receive_message():
 
         # For now, we'll just print the entire received JSON data
         print("--- Received Message Data ---")
-        print(data)
+        control_center.process_incoming_message(data)
         print("-----------------------------")
 
         # Return a success response
