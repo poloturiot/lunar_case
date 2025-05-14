@@ -24,7 +24,7 @@ class Rocket:
         # Append to buffer
         heapq.heappush(self.message_buffer, message)
 
-    def pop_message_from_buffer(self) -> tuple[int, dict]:
+    def pop_message_from_buffer(self):
         """Pop the next message from the buffer."""
         if self.message_buffer:
             heapq.heappop(self.message_buffer)

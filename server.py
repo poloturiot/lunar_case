@@ -14,7 +14,7 @@ def receive_message():
     It expects JSON data in the request body, extracts it,
     prints the data to the console, and returns a success response.
     """
-    logging.info("Received request at /messages endpoint.")
+    # logging.info("Received request at /messages endpoint.")
 
     # Check if the request contains JSON data
     if not request.is_json:
