@@ -15,7 +15,7 @@ class Rocket:
         
         # Buffer for messages that arrive out of order
         # Stores tuples of (message_number, original_message_dict)
-        self.message_buffer: list[tuple[int, dict]] = [] 
+        self.message_buffer: list[tuple[int, dict]] = []
         
     def increase_speed(self, increment: int):
         """Increase the speed of the rocket by a given increment."""

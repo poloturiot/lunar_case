@@ -57,6 +57,12 @@ class ControlCenter:
             # If the message is out of order, buffer it
             if msg_number > rocket.last_message_number + 1:
                 print(f"[{channel_id}] Message number {msg_number} is greater than last processed message number {rocket.last_message_number + 1}. Buffering.")
+                # Check if message is already in buffer
+                for buffered_msg_number, _ in rocket.message_buffer:
+                    if buffered_msg_number == msg_number:
+                        print(f"[{channel_id}] Message number {msg_number} is already in buffer. Ignoring.")
+                        return
+                # Append to buffer
                 rocket.message_buffer.append((msg_number, message))
                 return
             
@@ -95,13 +101,11 @@ class ControlCenter:
                 print(f"[{channel_id}] Mission changed to {new_mission}.")
 
             # Process buffered messages
-            while rocket.message_buffer:
-                buffered_msg_number, buffered_message = rocket.message_buffer[0]
+            for message in rocket.message_buffer:
+                buffered_msg_number, buffered_message = message
                 if buffered_msg_number == rocket.last_message_number + 1:
-                    rocket.message_buffer.pop(0)
+                    rocket.message_buffer.remove(message)
                     self.process_incoming_message(buffered_message)
-                else:
-                    break
 
     def list_rockets_in_fleet(self) -> list[dict]:
         """
