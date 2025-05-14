@@ -79,6 +79,63 @@ class TestControlCenter(unittest.TestCase):
         self.assertEqual(len(rocket.message_buffer), 1)
         self.assertEqual(rocket.last_message_number, 1)  # Still at launch message
 
+    def test_ignore_duplicates(self):
+        """Test handling duplicate messages."""
+        # First launch the rocket
+        self.test_process_launch_message()
+
+        # Send duplicate message
+        duplicate_message = {
+            "metadata": {
+                "channel": self.channel_id,
+                "messageNumber": 2,
+                "messageType": "RocketSpeedIncreased",
+                "messageTime": self.test_time
+            },
+            "message": {
+                "by": 500
+            }
+        }
+
+        rocket = self.control_center.rockets_fleet.get(self.channel_id)
+
+        # Process the message a first time
+        self.control_center.process_incoming_message(duplicate_message)
+        self.assertEqual(rocket.speed, 1500)  # Speed has increased
+
+        # Process the same message a second time
+        self.control_center.process_incoming_message(duplicate_message)
+        self.assertEqual(rocket.speed, 1500)  # Speed has not changed
+
+    def test_no_duplicates_in_buffer(self):
+        """Test handling of duplicate messages in buffer."""
+        # First launch the rocket
+        self.test_process_launch_message()
+
+        # Out of order message (will go to the buffer)
+        duplicate_message = {
+            "metadata": {
+                "channel": self.channel_id,
+                "messageNumber": 5,
+                "messageType": "RocketSpeedIncreased",
+                "messageTime": self.test_time
+            },
+            "message": {
+                "by": 500
+            }
+        }
+
+        rocket = self.control_center.rockets_fleet.get(self.channel_id)
+
+        # Try to process the message a first time
+        self.control_center.process_incoming_message(duplicate_message)
+        self.assertEqual(len(rocket.message_buffer), 1) # Buffer should have the message
+
+        # Process the same message a second time
+        self.control_center.process_incoming_message(duplicate_message)
+        self.assertEqual(len(rocket.message_buffer), 1) # Message as not been added again
+        
+
     def test_invalid_message_structure(self):
         """Test handling of invalid message structure."""
         invalid_message = {
