@@ -1,0 +1,114 @@
+import unittest
+from datetime import datetime
+from control_center import ControlCenter
+
+class TestControlCenter(unittest.TestCase):
+    def setUp(self):
+        """Set up test fixtures before each test method."""
+        self.control_center = ControlCenter()
+        self.test_time = "2025-05-14T10:00:00"
+        self.channel_id = "rocket_123"
+
+    def test_process_launch_message(self):
+        """Test processing a rocket launch message."""
+        launch_message = {
+            "metadata": {
+                "channel": self.channel_id,
+                "messageNumber": 1,
+                "messageType": "RocketLaunched",
+                "messageTime": self.test_time
+            },
+            "message": {
+                "launchSpeed": 1000,
+                "type": "Falcon",
+                "mission": "Moon Landing"
+            }
+        }
+
+        self.control_center.process_incoming_message(launch_message)
+        
+        # Verify rocket was added to fleet
+        rocket = self.control_center.rockets_fleet.get(self.channel_id)
+        self.assertIsNotNone(rocket)
+        self.assertEqual(rocket.speed, 1000)
+        self.assertEqual(rocket.mission, "Moon Landing")
+        self.assertEqual(rocket.last_message_number, 1)
+
+    def test_process_speed_increase(self):
+        """Test processing a speed increase message."""
+        # First launch the rocket
+        self.test_process_launch_message()
+
+        speed_message = {
+            "metadata": {
+                "channel": self.channel_id,
+                "messageNumber": 2,
+                "messageType": "RocketSpeedIncreased",
+                "messageTime": self.test_time
+            },
+            "message": {
+                "by": 500
+            }
+        }
+
+        self.control_center.process_incoming_message(speed_message)
+        rocket = self.control_center.rockets_fleet.get(self.channel_id)
+        self.assertEqual(rocket.speed, 1500)
+        self.assertEqual(rocket.last_message_number, 2)
+
+    def test_out_of_order_messages(self):
+        """Test handling of out-of-order messages."""
+        # First launch the rocket
+        self.test_process_launch_message()
+
+        # Send message 3 before message 2
+        speed_message_3 = {
+            "metadata": {
+                "channel": self.channel_id,
+                "messageNumber": 3,
+                "messageType": "RocketSpeedIncreased",
+                "messageTime": self.test_time
+            },
+            "message": {
+                "by": 500
+            }
+        }
+
+        self.control_center.process_incoming_message(speed_message_3)
+        rocket = self.control_center.rockets_fleet.get(self.channel_id)
+        self.assertEqual(len(rocket.message_buffer), 1)
+        self.assertEqual(rocket.last_message_number, 1)  # Still at launch message
+
+    def test_invalid_message_structure(self):
+        """Test handling of invalid message structure."""
+        invalid_message = {
+            "metadata": {
+                "channel": self.channel_id,
+                # Missing required fields
+            },
+            "message": {}
+        }
+
+        # Should not raise exception but log error
+        self.control_center.process_incoming_message(invalid_message)
+        self.assertEqual(len(self.control_center.rockets_fleet), 0)
+
+    def test_message_for_nonexistent_rocket(self):
+        """Test handling message for rocket that hasn't launched."""
+        speed_message = {
+            "metadata": {
+                "channel": "nonexistent_rocket",
+                "messageNumber": 1,
+                "messageType": "RocketSpeedIncreased",
+                "messageTime": self.test_time
+            },
+            "message": {
+                "by": 500
+            }
+        }
+
+        self.control_center.process_incoming_message(speed_message)
+        self.assertNotIn("nonexistent_rocket", self.control_center.rockets_fleet)
+
+if __name__ == '__main__':
+    unittest.main()

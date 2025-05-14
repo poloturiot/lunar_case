@@ -42,25 +42,26 @@ class ControlCenter:
                 
                 # Add rocket to fleet
                 self.rockets_fleet[channel_id] = rocket
-
                 print(f"Rocket {channel_id} added to fleet.")
+                return
 
             if not rocket:
                 print(f"[{channel_id}] No rocket found and message is not RocketLaunched ({msg_type}). Cannot process yet.")
-                rocket.message_buffer.append((msg_number, message))
-                return
+                return  # Don't try to append to buffer if rocket doesn't exist #TODO: FIx this, or message will be lost
 
+            # Ignore old messages (duplicates)
             if msg_number <= rocket.last_message_number:
                 print(f"[{channel_id}] Message number {msg_number} is less than or equal to last processed message number {rocket.last_message_number}. Ignoring.")
                 return
             
+            # If the message is out of order, buffer it
             if msg_number > rocket.last_message_number + 1:
                 print(f"[{channel_id}] Message number {msg_number} is greater than last processed message number {rocket.last_message_number + 1}. Buffering.")
                 rocket.message_buffer.append((msg_number, message))
                 return
             
             # If we reach this point, it means the message is in order, it can be processed
-            
+
             if msg_type == "RocketSpeedIncreased":
                 rocket = self.rockets_fleet[channel_id]
                 speed_increment = payload.get("by")
