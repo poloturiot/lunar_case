@@ -63,7 +63,7 @@ class ControlCenter:
                         print(f"[{channel_id}] Message number {msg_number} is already in buffer. Ignoring.")
                         return
                 # Append to buffer
-                rocket.message_buffer.append((msg_number, message))
+                rocket.append_message_to_buffer(msg_number, message)
                 return
             
             # If we reach this point, it means the message is in order, it can be processed
@@ -101,10 +101,11 @@ class ControlCenter:
                 print(f"[{channel_id}] Mission changed to {new_mission}.")
 
             # Process buffered messages
-            for message in rocket.message_buffer:
-                buffered_msg_number, buffered_message = message
+            # A heapq is sorted, so we can just check the first element
+            if rocket.message_buffer: # Check if the buffer is not empty
+                buffered_msg_number, buffered_message = rocket.message_buffer[0]
                 if buffered_msg_number == rocket.last_message_number + 1:
-                    rocket.message_buffer.remove(message)
+                    rocket.pop_message_from_buffer()
                     self.process_incoming_message(buffered_message)
 
     def list_rockets_in_fleet(self) -> list[dict]:

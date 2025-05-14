@@ -1,4 +1,5 @@
 from datetime import datetime
+import heapq
 
 class Rocket:
     def __init__(self, id: str, launch_time: str, last_update_time: str, last_message_number: int, 
@@ -16,6 +17,18 @@ class Rocket:
         # Buffer for messages that arrive out of order
         # Stores tuples of (message_number, original_message_dict)
         self.message_buffer: list[tuple[int, dict]] = []
+
+    def append_message_to_buffer(self, message_number: int, message: dict):
+        """Append a message to the buffer."""
+        message = (message_number, message)
+        # Append to buffer
+        heapq.heappush(self.message_buffer, message)
+
+    def pop_message_from_buffer(self) -> tuple[int, dict] | None:
+        """Pop the next message from the buffer."""
+        if self.message_buffer:
+            return heapq.heappop(self.message_buffer)
+        return None
         
     def increase_speed(self, increment: int):
         """Increase the speed of the rocket by a given increment."""
