@@ -17,4 +17,20 @@ class Rocket:
         # Stores tuples of (message_number, original_message_dict)
         self.message_buffer: list[tuple[int, dict]] = [] 
         
+    def increase_speed(self, increment: int):
+        """Increase the speed of the rocket by a given increment."""
+        self.speed += increment
+
+    def decrease_speed(self, decrement: int):
+        """Decrease the speed of the rocket by a given decrement."""
+        self.speed -= decrement
+
+    def explod(self, explosion_reason: str):
+        """Set the status of the rocket to 'Exploded' and record the explosion reason."""
+        self.status = "Exploded"
+        self.explosion_reason = explosion_reason
+
+    def update_mission(self, new_mission: str):
+        """Update the mission of the rocket."""
+        self.mission = new_mission
 
