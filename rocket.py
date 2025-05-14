@@ -34,3 +34,16 @@ class Rocket:
         """Update the mission of the rocket."""
         self.mission = new_mission
 
+    def to_dict(self) -> dict:
+        """Serializes the rocket state to a dictionary for API responses."""
+        return {
+            "id": self.id,
+            "launch_time": self.launch_time,
+            "last_update_time": self.last_update_time,
+            "last_message_number": self.last_message_number,
+            "speed": self.speed,
+            "rocket_type": self.rocket_type,
+            "mission": self.mission,
+            "status": self.status,
+            "explosion_reason": self.explosion_reason
+        }

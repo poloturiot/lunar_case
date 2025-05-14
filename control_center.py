@@ -8,7 +8,9 @@ class ControlCenter:
         self.lock = threading.Lock()
 
     def process_incoming_message(self, message: any):
-        print(message)
+        """
+        Processes incoming messages from the API server.
+        """
 
         metadata = message.get("metadata", {})
         payload = message.get("message", {})
@@ -78,3 +80,13 @@ class ControlCenter:
                 rocket.last_update_time = msg_time_str
                 rocket.last_message_number = msg_number
                 print(f"[{channel_id}] Mission changed to {new_mission}.")
+
+    def list_rockets_in_fleet(self) -> list[dict]:
+        """
+        Returns a list of all rockets in the fleet as dictionaries.
+        
+        Returns:
+            list[dict]: A list of rocket dictionaries that can be JSON serialized
+        """
+        with self.lock:
+            return [rocket.to_dict() for rocket in self.rockets_fleet.values()]

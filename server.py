@@ -24,17 +24,8 @@ def receive_message():
     # Get the JSON data from the request
     try:
         data = request.get_json()
-        logging.info(f"Received JSON data: {data}")
-
-        # You can customize this part based on the expected structure
-        # For example, if you expect a 'message' field:
-        # message_content = data.get('message', 'No message field found')
-        # print(f"Message content: {message_content}")
-
-        # For now, we'll just print the entire received JSON data
-        print("--- Received Message Data ---")
-        control_center.process_incoming_message(data)
         print("-----------------------------")
+        control_center.process_incoming_message(data)
 
         # Return a success response
         return jsonify({"status": "success", "message_received": data}), 200 # OK
@@ -42,6 +33,26 @@ def receive_message():
     except Exception as e:
         logging.error(f"Error processing request: {e}")
         return jsonify({"error": "An internal error occurred"}), 500 # Internal Server Error
+
+@app.route('/rockets', methods=['GET'])
+def list_rockets():
+    """
+    Handles GET requests to the /rockets endpoint.
+    It returns a list of all rockets in the fleet.
+    """
+    logging.info("Received request at /rockets endpoint.")
+
+    try:
+        # Get the list of rockets from the control center
+        rockets = control_center.list_rockets_in_fleet()
+
+        # Return the list of rockets as JSON
+        return jsonify(rockets), 200
+    
+    except Exception as e:
+        logging.error(f"Error listing rockets: {e}")
+        return jsonify({"error": "An internal error occurred"}), 500 # Internal Server Error
+
 
 # Main execution block
 if __name__ == '__main__':
