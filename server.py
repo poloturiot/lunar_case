@@ -18,7 +18,7 @@ def receive_message():
 
     # Check if the request contains JSON data
     if not request.is_json:
-        logging.warning("Request did not contain JSON data.")
+        logging.error("Request did not contain JSON data.")
         return jsonify({"error": "Request must be JSON"}), 400 # Bad Request
 
     # Get the JSON data from the request
