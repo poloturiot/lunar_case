@@ -79,6 +79,23 @@ class TestControlCenter(unittest.TestCase):
         self.assertEqual(len(rocket.message_buffer), 1)
         self.assertEqual(rocket.last_message_number, 1)  # Still at launch message
 
+        # Send message 2
+        speed_message_2 = {
+            "metadata": {
+                "channel": self.channel_id,
+                "messageNumber": 2,
+                "messageType": "RocketSpeedIncreased",
+                "messageTime": self.test_time
+            },
+            "message": {
+                "by": 100
+            }
+        }
+        self.control_center.process_incoming_message(speed_message_2)
+        self.assertEqual(len(rocket.message_buffer), 0)  # Buffer should be empty
+        self.assertEqual(rocket.last_message_number, 3)  # Message 2 and 3 processed 
+        self.assertEqual(rocket.speed, 1600)  # Speed should be updated
+
     def test_ignore_duplicates(self):
         """Test handling duplicate messages."""
         # First launch the rocket

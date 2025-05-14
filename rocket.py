@@ -6,7 +6,7 @@ class Rocket:
                  speed: int, rocket_type: str, mission: str):
         self.id: str = id
         self.launch_time: datetime = datetime.fromisoformat(launch_time)
-        self.last_update_time: datetime = datetime.fromisoformat(last_update_time)
+        self.last_update_time: datetime = datetime.fromisoformat(last_update_time) # TODO: fix formating
         self.last_message_number: int = last_message_number
         self.speed: int = speed
         self.rocket_type: str = rocket_type
@@ -24,11 +24,10 @@ class Rocket:
         # Append to buffer
         heapq.heappush(self.message_buffer, message)
 
-    def pop_message_from_buffer(self) -> tuple[int, dict] | None:
+    def pop_message_from_buffer(self) -> tuple[int, dict]:
         """Pop the next message from the buffer."""
         if self.message_buffer:
-            return heapq.heappop(self.message_buffer)
-        return None
+            heapq.heappop(self.message_buffer)
         
     def increase_speed(self, increment: int):
         """Increase the speed of the rocket by a given increment."""

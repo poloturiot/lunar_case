@@ -5,7 +5,8 @@ from rocket import Rocket
 class ControlCenter:
     def __init__(self):
         self.rockets_fleet: dict[str, Rocket] = {}
-        self.lock = threading.Lock()
+        # Reentrant lock. RLock allows a thread to acquire the lock multiple times. Useful in recursive functions
+        self.lock = threading.RLock()
 
     def process_incoming_message(self, message: any):
         """
@@ -24,8 +25,9 @@ class ControlCenter:
             print(f"Error: Invalid message structure: {message}")
             return
         
+        print(f"Before lock")
         with self.lock:
-    
+            print(f"After lock")
             rocket = self.rockets_fleet.get(channel_id)
 
             # If rocket doesn't exist yet, and it is being Launched, and should be added to the fleet
@@ -56,7 +58,7 @@ class ControlCenter:
             
             # If the message is out of order, buffer it
             if msg_number > rocket.last_message_number + 1:
-                print(f"[{channel_id}] Message number {msg_number} is greater than last processed message number {rocket.last_message_number + 1}. Buffering.")
+                print(f"[{channel_id}] Waiting for message {rocket.last_message_number + 1}. Message {msg_number} is added to buffer.")
                 # Check if message is already in buffer
                 for buffered_msg_number, _ in rocket.message_buffer:
                     if buffered_msg_number == msg_number:
@@ -67,6 +69,7 @@ class ControlCenter:
                 return
             
             # If we reach this point, it means the message is in order, it can be processed
+            print(f"[{channel_id}] Processing message {msg_number}")
 
             if msg_type == "RocketSpeedIncreased":
                 rocket = self.rockets_fleet[channel_id]
@@ -103,10 +106,14 @@ class ControlCenter:
             # Process buffered messages
             # A heapq is sorted, so we can just check the first element
             if rocket.message_buffer: # Check if the buffer is not empty
+                print(f"[{channel_id}] Message(s) in buffer. Processing next message.")
                 buffered_msg_number, buffered_message = rocket.message_buffer[0]
                 if buffered_msg_number == rocket.last_message_number + 1:
                     rocket.pop_message_from_buffer()
                     self.process_incoming_message(buffered_message)
+                else:
+                    print(f"[{channel_id}] Next message in buffer is not ready yet. Waiting for message {rocket.last_message_number + 1}.")
+                    return
 
     def list_rockets_in_fleet(self) -> list[dict]:
         """
