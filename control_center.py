@@ -24,7 +24,7 @@ class ControlCenter:
             print(f"Error: Invalid message structure: {message}")
             return
         
-        with self.lock: # CRITICAL SECTION START
+        with self.lock:
     
             rocket = self.rockets_fleet.get(channel_id)
 
@@ -83,10 +83,15 @@ class ControlCenter:
 
     def list_rockets_in_fleet(self) -> list[dict]:
         """
-        Returns a list of all rockets in the fleet as dictionaries.
+        Returns a list of all rockets in the fleet as dictionaries, ordered by launch time.
         
         Returns:
             list[dict]: A list of rocket dictionaries that can be JSON serialized
         """
         with self.lock:
-            return [rocket.to_dict() for rocket in self.rockets_fleet.values()]
+        
+            sorted_rockets = sorted(
+                self.rockets_fleet.values(),
+                key=lambda rocket: rocket.launch_time
+            )
+            return [rocket.to_dict() for rocket in sorted_rockets]
