@@ -24,7 +24,6 @@ def receive_message():
     # Get the JSON data from the request
     try:
         data = request.get_json()
-        print("-----------------------------")
         control_center.process_incoming_message(data)
 
         # Return a success response
@@ -34,6 +33,7 @@ def receive_message():
         logging.error(f"Error processing request: {e}")
         return jsonify({"error": "An internal error occurred"}), 500 # Internal Server Error
 
+# Endpoint to get all rockets in the fleet
 @app.route('/rockets', methods=['GET'])
 def get_all_rockets():
     """
@@ -53,6 +53,7 @@ def get_all_rockets():
         logging.error(f"Error listing rockets: {e}")
         return jsonify({"error": "An internal error occurred"}), 500 # Internal Server Error
 
+# Endpoint to get a specific rocket's information by ID
 @app.route('/rockets/<rocket_id>', methods=['GET'])
 def get_rocket(rocket_id):
     """
@@ -75,6 +76,7 @@ def get_rocket(rocket_id):
         logging.error(f"Error retrieving rocket: {e}")
         return jsonify({"error": "An internal error occurred"}), 500
 
+# Endpoint to get all missions
 @app.route('/missions', methods=['GET'])
 def get_all_missions():
     """
@@ -91,6 +93,7 @@ def get_all_missions():
         logging.error(f"Error listing missions: {e}")
         return jsonify({"error": "An internal error occurred"}), 500
 
+# Endpoint to get rockets by mission
 @app.route('/missions/<mission>', methods=['GET'])
 def get_rockets_by_mission(mission):
     """
@@ -112,10 +115,6 @@ def get_rockets_by_mission(mission):
 # Main execution block
 if __name__ == '__main__':
     # Run the Flask development server
-    # host='0.0.0.0' makes the server accessible from any network interface
-    # port=8088 specifies the port number
-    # debug=True enables debug mode (useful for development, provides auto-reload and detailed errors)
-    # Use debug=False in a production environment
     logging.info("Starting Flask server on port 8088...")
     # Use use_reloader=False to prevent the script from running twice in debug mode if not needed
     app.run(host='0.0.0.0', port=8088, debug=True, use_reloader=False)

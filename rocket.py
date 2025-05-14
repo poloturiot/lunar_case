@@ -13,7 +13,7 @@ class Rocket:
         self.status: str = "Launched"
         self.explosion_reason: str | None = None
         
-        # Buffer for messages that arrive out of order (message_number > last_processed_message_number + 1)
+        # Buffer for messages that arrive out of order
         # Stores tuples of (message_number, original_message_dict)
         self.message_buffer: list[tuple[int, dict]] = [] 
         
