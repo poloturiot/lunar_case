@@ -5,7 +5,7 @@ from control_center import ControlCenter
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__)
-control_center = ControlCenter
+control_center = ControlCenter()  # Create an instance of ControlCenter
 
 @app.route('/messages', methods=['POST'])
 def receive_message():

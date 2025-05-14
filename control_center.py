@@ -39,7 +39,9 @@ class ControlCenter:
                 )
 
                 self.rockets_fleet[channel_id] = rocket
-            
+
+                print(f"Rocket {channel_id} added to fleet.")
+
             if not rocket:
                 print(f"[{channel_id}] No rocket found and message is not RocketLaunched ({msg_type}). Cannot process yet.")
                 return
