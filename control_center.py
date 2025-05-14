@@ -28,7 +28,7 @@ class ControlCenter:
     
             rocket = self.rockets_fleet.get(channel_id)
 
-            # If rocket doesn't exist yet, and it is being Launched add it
+            # If rocket doesn't exist yet, and it is being Launched, and should be added to the fleet
             if not rocket and msg_type == "RocketLaunched":
                 rocket = Rocket(
                     id=channel_id, 
@@ -47,7 +47,19 @@ class ControlCenter:
 
             if not rocket:
                 print(f"[{channel_id}] No rocket found and message is not RocketLaunched ({msg_type}). Cannot process yet.")
+                rocket.message_buffer.append((msg_number, message))
                 return
+
+            if msg_number <= rocket.last_message_number:
+                print(f"[{channel_id}] Message number {msg_number} is less than or equal to last processed message number {rocket.last_message_number}. Ignoring.")
+                return
+            
+            if msg_number > rocket.last_message_number + 1:
+                print(f"[{channel_id}] Message number {msg_number} is greater than last processed message number {rocket.last_message_number + 1}. Buffering.")
+                rocket.message_buffer.append((msg_number, message))
+                return
+            
+            # If we reach this point, it means the message is in order, it can be processed
             
             if msg_type == "RocketSpeedIncreased":
                 rocket = self.rockets_fleet[channel_id]
@@ -80,6 +92,15 @@ class ControlCenter:
                 rocket.last_update_time = msg_time_str
                 rocket.last_message_number = msg_number
                 print(f"[{channel_id}] Mission changed to {new_mission}.")
+
+            # Process buffered messages
+            while rocket.message_buffer:
+                buffered_msg_number, buffered_message = rocket.message_buffer[0]
+                if buffered_msg_number == rocket.last_message_number + 1:
+                    rocket.message_buffer.pop(0)
+                    self.process_incoming_message(buffered_message)
+                else:
+                    break
 
     def list_rockets_in_fleet(self) -> list[dict]:
         """

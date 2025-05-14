@@ -1,15 +1,37 @@
 # Setup
-Create new virtual env
+
+## Python virtual environment
+Create new Python virtual environment
+```bash
 python3 -m venv lunar_case
+```
 
 Activate venv
+```bash
 source lunar_case/bin/activate
+```
 
 Stop venv
+```bash
 deactivate
+```
 
-Install flask library
-pip install flask
+Install all required libraries
+```bash
+pip install -r requirements.txt
+```
+
+Run the API server
+```bash
+python3 server.py
+```
+
+# Tests
+
+Run all unit tests
+```bash
+python -m unittest -v
+```
 
 # API Documentation
 
