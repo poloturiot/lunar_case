@@ -29,12 +29,15 @@ class ControlCenter:
             # If rocket doesn't exist yet, and it is being Launched add it
             if not rocket and msg_type == "RocketLaunched":
                 rocket = Rocket(
-                    channel_id=channel_id,
-                    rocket_type=payload.get("type"),
-                    launch_speed=payload.get("launchSpeed"),
-                    mission=payload.get("mission"),
-                    initial_message_number=0 # Will be updated by update_from_message
+                    id=channel_id, 
+                    launch_time = metadata.get("messageTime"), 
+                    last_update_time = metadata.get("messageTime"), 
+                    last_message_number= metadata.get("messageNumber"),
+                    speed = payload.get("launchSpeed"),
+                    rocket_type = payload.get("type"),
+                    mission = payload.get("mission")
                 )
+
                 self.rockets_fleet[channel_id] = rocket
             
             if not rocket:
