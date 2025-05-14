@@ -95,3 +95,46 @@ class ControlCenter:
                 key=lambda rocket: rocket.launch_time
             )
             return [rocket.to_dict() for rocket in sorted_rockets]
+    
+    def list_missions(self) -> list[str]:
+        """
+        Returns a list of all unique missions across all rockets.
+        
+        Returns:
+            list[str]: A list of unique mission names, sorted alphabetically
+        """
+        with self.lock:
+            missions = {rocket.mission for rocket in self.rockets_fleet.values()}
+            return sorted(list(missions))
+    
+    def get_rockets_by_mission(self, mission: str) -> list[dict]:
+        """
+        Returns a list of rockets assigned to a specific mission.
+        
+        Args:
+            mission (str): The mission name to filter by
+        
+        Returns:
+            list[dict]: A list of rocket dictionaries assigned to the mission, ordered by launch time
+        """
+        with self.lock:
+            mission_rockets = [
+                rocket for rocket in self.rockets_fleet.values() 
+                if rocket.mission.lower() == mission.lower()
+            ]
+            sorted_rockets = sorted(mission_rockets, key=lambda rocket: rocket.launch_time)
+            return [rocket.to_dict() for rocket in sorted_rockets]
+    
+    def get_rocket_by_id(self, rocket_id: str) -> dict | None:
+        """
+        Returns the details of a specific rocket by its ID.
+        
+        Args:
+            rocket_id (str): The ID of the rocket to retrieve.
+        
+        Returns:
+            dict | None: The rocket details as a dictionary, or None if not found.
+        """
+        with self.lock:
+            rocket = self.rockets_fleet.get(rocket_id)
+            return rocket.to_dict() if rocket else None

@@ -35,7 +35,7 @@ def receive_message():
         return jsonify({"error": "An internal error occurred"}), 500 # Internal Server Error
 
 @app.route('/rockets', methods=['GET'])
-def list_rockets():
+def get_all_rockets():
     """
     Handles GET requests to the /rockets endpoint.
     It returns a list of all rockets in the fleet.
@@ -53,7 +53,62 @@ def list_rockets():
         logging.error(f"Error listing rockets: {e}")
         return jsonify({"error": "An internal error occurred"}), 500 # Internal Server Error
 
+@app.route('/rockets/<rocket_id>', methods=['GET'])
+def get_rocket(rocket_id):
+    """
+    Handles GET requests to the /rockets/<rocket_id> endpoint.
+    It returns the details of a specific rocket by its ID.
+    """
+    logging.info(f"Received request at /rockets/{rocket_id} endpoint.")
 
+    try:
+        # Get the rocket details from the control center
+        rocket = control_center.get_rocket_by_id(rocket_id)
+
+        if rocket:
+            # Return the rocket details as JSON
+            return jsonify(rocket), 200
+        else:
+            return jsonify({"error": "Rocket not found"}), 404 # Not Found
+    
+    except Exception as e:
+        logging.error(f"Error retrieving rocket: {e}")
+        return jsonify({"error": "An internal error occurred"}), 500
+
+@app.route('/missions', methods=['GET'])
+def get_all_missions():
+    """
+    Handles GET requests to the /missions endpoint.
+    Returns a list of all unique missions across all rockets.
+    """
+    logging.info("Received request at /missions endpoint.")
+
+    try:
+        missions = control_center.list_missions()
+        return jsonify({"missions": missions}), 200
+    
+    except Exception as e:
+        logging.error(f"Error listing missions: {e}")
+        return jsonify({"error": "An internal error occurred"}), 500
+
+@app.route('/missions/<mission>', methods=['GET'])
+def get_rockets_by_mission(mission):
+    """
+    Handles GET requests to the /missions/<mission> endpoint.
+    Returns all rockets assigned to a specific mission.
+    """
+    logging.info(f"Received request at /missions/{mission} endpoint.")
+
+    try:
+        rockets = control_center.get_rockets_by_mission(mission)
+        if rockets:
+            return jsonify({"mission": mission, "rockets": rockets}), 200
+        return jsonify({"error": f"No rockets found for mission: {mission}"}), 404
+    
+    except Exception as e:
+        logging.error(f"Error retrieving rockets for mission {mission}: {e}")
+        return jsonify({"error": "An internal error occurred"}), 500
+    
 # Main execution block
 if __name__ == '__main__':
     # Run the Flask development server
