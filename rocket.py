@@ -18,8 +18,8 @@ class Rocket:
         # Stores tuples of (message_number, original_message_dict)
         self.message_buffer: list[tuple[int, dict]] = []
 
-        # Individual lock for each rocket
-        self.lock = threading.RLock()
+        # Individual reentrant lock for each rocket. RLock allows a thread to acquire the lock multiple times. Useful in recursive functions
+        self.lock: threading.RLock = threading.RLock()
 
     def append_message_to_buffer(self, message_number: int, message: dict):
         """Append a message to the buffer."""

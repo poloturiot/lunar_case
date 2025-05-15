@@ -14,7 +14,6 @@ def receive_message():
     It expects JSON data in the request body, extracts it,
     prints the data to the console, and returns a success response.
     """
-    # logging.info("Received request at /messages endpoint.")
 
     # Check if the request contains JSON data
     if not request.is_json:
@@ -116,6 +115,5 @@ def get_rockets_by_mission(mission):
 if __name__ == '__main__':
     # Run the Flask development server
     logging.info("Starting Flask server on port 8088...")
-    # Use use_reloader=False to prevent the script from running twice in debug mode if not needed
-    app.run(host='0.0.0.0', port=8088, debug=True, use_reloader=False)
+    app.run(host='0.0.0.0', port=8088)
     logging.info("Flask server stopped.")

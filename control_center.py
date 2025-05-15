@@ -5,7 +5,8 @@ from rocket import Rocket
 class ControlCenter:
     def __init__(self):
         self.rockets_fleet: dict[str, Rocket] = {}
-        # Reentrant lock. RLock allows a thread to acquire the lock multiple times. Useful in recursive functions
+
+        # Lock to ensure thread-safe access to the fleet
         self.fleet_lock = threading.Lock()
 
     def process_incoming_message(self, message: any):
