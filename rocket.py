@@ -42,7 +42,7 @@ class Rocket:
         self.speed -= decrement
         self.update_time_and_message_number(msg_time_str, msg_number)
 
-    def explod(self, explosion_reason: str, msg_time_str: str, msg_number: int):
+    def explode(self, explosion_reason: str, msg_time_str: str, msg_number: int):
         """Set the status of the rocket to 'Exploded' and record the explosion reason."""
         self.status = "Exploded"
         self.explosion_reason = explosion_reason

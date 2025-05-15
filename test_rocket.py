@@ -50,7 +50,7 @@ class TestRocket(unittest.TestCase):
         reason = "Fuel tank rupture"
         msg_time_str = "2025-05-14T10:02:00"
         msg_number = 2
-        self.test_rocket.explod(reason, msg_time_str, msg_number)
+        self.test_rocket.explode(reason, msg_time_str, msg_number)
         self.assertEqual(self.test_rocket.last_update_time, datetime.fromisoformat(msg_time_str))
         self.assertEqual(self.test_rocket.last_message_number, msg_number)
         self.assertEqual(self.test_rocket.status, "Exploded")

@@ -85,7 +85,7 @@ class ControlCenter:
             
             if msg_type == "RocketExploded":
                 reason = payload.get("reason")
-                rocket.explod(reason, msg_time_str, msg_number)
+                rocket.explode(reason, msg_time_str, msg_number)
                 logging.info(f"[{channel_id}] Rocket exploded. Reason: {reason}.")
 
             if msg_type == "RocketMissionChanged":
