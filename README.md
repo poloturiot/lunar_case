@@ -48,7 +48,13 @@ Locate the executable that works for your system and run the following:
 Run all unit tests
 
 ```bash
-python -m unittest -v
+make test
+```
+
+Run all unit tests with test coverage
+
+```bash
+make test_coverage
 ```
 
 # API Documentation

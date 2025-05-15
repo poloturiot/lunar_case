@@ -6,3 +6,6 @@ start_server:
 
 test:
 	python -m unittest -v
+
+test_coverage:
+	coverage run -m unittest discover && coverage report -m
