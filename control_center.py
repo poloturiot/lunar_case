@@ -22,8 +22,8 @@ class ControlCenter:
         msg_time_str = metadata.get("messageTime")
 
         with self.fleet_lock:
-            rocket = self._get_or_create_rocket(channel_id, msg_type, metadata, payload)
-            if not rocket:
+            rocket, new_rocket = self._get_or_create_rocket(channel_id, msg_type, metadata, payload)
+            if not rocket or new_rocket: # Return if no rocket exists with this ID or it's a new launch message
                 return
 
         with rocket.lock:
@@ -48,14 +48,16 @@ class ControlCenter:
         ])
 
     def _get_or_create_rocket(self, channel_id: str, msg_type: str, 
-                            metadata: dict, payload: dict) -> Rocket | None:
+                            metadata: dict, payload: dict) -> tuple[Rocket, bool] | tuple[None, bool]:
         """Gets existing rocket or creates new one if it's a launch message."""
         rocket = self.rockets_fleet.get(channel_id)
+        new_rocket = False
         if not rocket and msg_type == "RocketLaunched":
             rocket = self._create_new_rocket(channel_id, metadata, payload)
             self.rockets_fleet[channel_id] = rocket
+            new_rocket = True
             logging.info(f"Rocket {channel_id} added to fleet.")
-        return rocket
+        return (rocket, new_rocket)
 
     def _create_new_rocket(self, channel_id: str, metadata: dict, payload: dict) -> Rocket:
         """Creates a new rocket instance."""
