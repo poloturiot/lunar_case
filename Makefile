@@ -5,7 +5,7 @@ start_server:
 	python3 server.py
 
 test:
-	python -m unittest -v
+	python -m unittest discover tests -v
 
 test_coverage:
-	coverage run -m unittest discover && coverage report -m
+	coverage run -m unittest discover tests && coverage report -m
