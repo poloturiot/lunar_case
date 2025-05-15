@@ -6,7 +6,7 @@ class Rocket:
                  speed: int, rocket_type: str, mission: str):
         self.id: str = id
         self.launch_time: datetime = datetime.fromisoformat(launch_time)
-        self.last_update_time: datetime = datetime.fromisoformat(last_update_time) # TODO: fix formating
+        self.last_update_time: datetime = datetime.fromisoformat(last_update_time)
         self.last_message_number: int = last_message_number
         self.speed: int = speed
         self.rocket_type: str = rocket_type

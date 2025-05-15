@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 import threading
 from rocket import Rocket
@@ -75,7 +76,7 @@ class ControlCenter:
                 rocket = self.rockets_fleet[channel_id]
                 speed_increment = payload.get("by")
                 rocket.increase_speed(speed_increment)
-                rocket.last_update_time = msg_time_str
+                rocket.last_update_time = datetime.fromisoformat(msg_time_str)
                 rocket.last_message_number = msg_number
                 logging.info(f"[{channel_id}] Speed increased by {speed_increment}. New speed: {rocket.speed}.")
 
@@ -83,7 +84,7 @@ class ControlCenter:
                 rocket = self.rockets_fleet[channel_id]
                 speed_decrement = payload.get("by")
                 rocket.decrease_speed(speed_decrement)
-                rocket.last_update_time = msg_time_str
+                rocket.last_update_time = datetime.fromisoformat(msg_time_str)
                 rocket.last_message_number = msg_number
                 logging.info(f"[{channel_id}] Speed decreased by {speed_decrement}. New speed: {rocket.speed}.")
             
@@ -91,7 +92,7 @@ class ControlCenter:
                 rocket = self.rockets_fleet[channel_id]
                 reason = payload.get("reason")
                 rocket.explod(reason)
-                rocket.last_update_time = msg_time_str
+                rocket.last_update_time = datetime.fromisoformat(msg_time_str)
                 rocket.last_message_number = msg_number
                 logging.info(f"[{channel_id}] Rocket exploded. Reason: {reason}.")
 
@@ -99,7 +100,7 @@ class ControlCenter:
                 rocket = self.rockets_fleet[channel_id]
                 new_mission = payload.get("newMission")
                 rocket.update_mission(new_mission)
-                rocket.last_update_time = msg_time_str
+                rocket.last_update_time = datetime.fromisoformat(msg_time_str)
                 rocket.last_message_number = msg_number
                 logging.info(f"[{channel_id}] Mission changed to {new_mission}.")
 
