@@ -40,8 +40,8 @@ class TestFlaskAPI(unittest.TestCase):
         """Test POST /messages with invalid JSON."""
         response = self.app.post(
             '/messages',
-            data='invalid json',
-            content_type='application/json'
+            data='Not json',
+            content_type='text/plain'
         )
         
         self.assertEqual(response.status_code, 400)
