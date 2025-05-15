@@ -2,3 +2,4 @@ __pycache__
 .vscode/
 lunar_case/
 .DS_Store
+.coverage

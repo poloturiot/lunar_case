@@ -184,5 +184,84 @@ class TestControlCenter(unittest.TestCase):
         self.control_center.process_incoming_message(speed_message)
         self.assertNotIn("nonexistent_rocket", self.control_center.rockets_fleet)
 
+    def test_handle_speed_increase(self):
+        """Test handling of speed increase message."""
+        # First launch the rocket
+        self.test_process_launch_message()
+        rocket = self.control_center.rockets_fleet.get(self.channel_id)
+        initial_speed = rocket.speed
+
+        # Test speed increase
+        self.control_center._handle_speed_increase(
+            rocket=rocket,
+            payload={"by": 500},
+            msg_time_str=self.test_time,
+            msg_number=2
+        )
+
+        self.assertEqual(rocket.speed, initial_speed + 500)
+        self.assertEqual(rocket.last_message_number, 2)
+        self.assertEqual(rocket.last_update_time, datetime.fromisoformat(self.test_time))
+
+    def test_handle_speed_decrease(self):
+        """Test handling of speed decrease message."""
+        # First launch the rocket
+        self.test_process_launch_message()
+        rocket = self.control_center.rockets_fleet.get(self.channel_id)
+        initial_speed = rocket.speed
+
+        # Test speed decrease
+        self.control_center._handle_speed_decrease(
+            rocket=rocket,
+            payload={"by": 300},
+            msg_time_str=self.test_time,
+            msg_number=2
+        )
+
+        self.assertEqual(rocket.speed, initial_speed - 300)
+        self.assertEqual(rocket.last_message_number, 2)
+        self.assertEqual(rocket.last_update_time, datetime.fromisoformat(self.test_time))
+
+    def test_handle_explosion(self):
+        """Test handling of explosion message."""
+        # First launch the rocket
+        self.test_process_launch_message()
+        rocket = self.control_center.rockets_fleet.get(self.channel_id)
+
+        # Test explosion
+        explosion_reason = "Fuel tank rupture"
+        self.control_center._handle_explosion(
+            rocket=rocket,
+            payload={"reason": explosion_reason},
+            msg_time_str=self.test_time,
+            msg_number=2
+        )
+
+        self.assertEqual(rocket.status, "Exploded")
+        self.assertEqual(rocket.explosion_reason, explosion_reason)
+        self.assertEqual(rocket.last_message_number, 2)
+        self.assertEqual(rocket.last_update_time, datetime.fromisoformat(self.test_time))
+
+    def test_handle_mission_change(self):
+        """Test handling of mission change message."""
+        # First launch the rocket
+        self.test_process_launch_message()
+        rocket = self.control_center.rockets_fleet.get(self.channel_id)
+        initial_mission = rocket.mission
+
+        # Test mission change
+        new_mission = "Mars Landing"
+        self.control_center._handle_mission_change(
+            rocket=rocket,
+            payload={"newMission": new_mission},
+            msg_time_str=self.test_time,
+            msg_number=2
+        )
+
+        self.assertNotEqual(rocket.mission, initial_mission)
+        self.assertEqual(rocket.mission, new_mission)
+        self.assertEqual(rocket.last_message_number, 2)
+        self.assertEqual(rocket.last_update_time, datetime.fromisoformat(self.test_time))
+
 if __name__ == '__main__':
     unittest.main()
