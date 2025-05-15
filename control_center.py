@@ -2,13 +2,11 @@ from datetime import datetime
 import logging
 import threading
 from rocket import Rocket
-
-
 class ControlCenter:
     def __init__(self):
         self.rockets_fleet: dict[str, Rocket] = {}
         # Reentrant lock. RLock allows a thread to acquire the lock multiple times. Useful in recursive functions
-        self.lock = threading.RLock()
+        self.fleet_lock = threading.Lock()
 
     def process_incoming_message(self, message: any):
         """
@@ -27,30 +25,33 @@ class ControlCenter:
             logging.error(f"Invalid message structure: {message}")
             return
         
-        with self.lock:
+        with self.fleet_lock:
             rocket = self.rockets_fleet.get(channel_id)
 
-            # If rocket doesn't exist yet, and it is being Launched, and should be added to the fleet
-            if not rocket and msg_type == "RocketLaunched":
-                rocket = Rocket(
-                    id=channel_id, 
-                    launch_time = msg_time_str, 
-                    last_update_time = msg_time_str, 
-                    last_message_number= metadata.get("messageNumber"),
-                    speed = payload.get("launchSpeed"),
-                    rocket_type = payload.get("type"),
-                    mission = payload.get("mission")
-                )
-                
-                # Add rocket to fleet
+        # If rocket doesn't exist yet, and it is being Launched, and should be added to the fleet
+        if not rocket and msg_type == "RocketLaunched":
+            rocket = Rocket(
+                id=channel_id, 
+                launch_time = msg_time_str, 
+                last_update_time = msg_time_str, 
+                last_message_number= metadata.get("messageNumber"),
+                speed = payload.get("launchSpeed"),
+                rocket_type = payload.get("type"),
+                mission = payload.get("mission")
+            )
+            
+            # Add rocket to fleet
+            with self.fleet_lock:
                 self.rockets_fleet[channel_id] = rocket
-                logging.info(f"Rocket {channel_id} added to fleet.")
+            logging.info(f"Rocket {channel_id} added to fleet.")
 
-                return
+            return
 
-            if not rocket:
-                logging.warning(f"[{channel_id}] No rocket found and message is not RocketLaunched ({msg_type}). Cannot process yet.")
-                return  # Don't try to append to buffer if rocket doesn't exist #TODO: FIx this, or message will be lost
+        if not rocket:
+            logging.warning(f"[{channel_id}] No rocket found and message is not RocketLaunched ({msg_type}). Cannot process yet.")
+            return  # Don't try to append to buffer if rocket doesn't exist #TODO: FIx this, or message will be lost
+
+        with rocket.lock:
 
             # Ignore old messages (duplicates)
             if msg_number <= rocket.last_message_number:
@@ -73,41 +74,29 @@ class ControlCenter:
             logging.debug(f"[{channel_id}] Processing message {msg_number}")
 
             if msg_type == "RocketSpeedIncreased":
-                rocket = self.rockets_fleet[channel_id]
                 speed_increment = payload.get("by")
-                rocket.increase_speed(speed_increment)
-                rocket.last_update_time = datetime.fromisoformat(msg_time_str)
-                rocket.last_message_number = msg_number
+                rocket.increase_speed(speed_increment, msg_time_str, msg_number)
                 logging.info(f"[{channel_id}] Speed increased by {speed_increment}. New speed: {rocket.speed}.")
 
             if msg_type == "RocketSpeedDecreased":
-                rocket = self.rockets_fleet[channel_id]
                 speed_decrement = payload.get("by")
-                rocket.decrease_speed(speed_decrement)
-                rocket.last_update_time = datetime.fromisoformat(msg_time_str)
-                rocket.last_message_number = msg_number
+                rocket.decrease_speed(speed_decrement, msg_time_str, msg_number)
                 logging.info(f"[{channel_id}] Speed decreased by {speed_decrement}. New speed: {rocket.speed}.")
             
             if msg_type == "RocketExploded":
-                rocket = self.rockets_fleet[channel_id]
                 reason = payload.get("reason")
-                rocket.explod(reason)
-                rocket.last_update_time = datetime.fromisoformat(msg_time_str)
-                rocket.last_message_number = msg_number
+                rocket.explod(reason, msg_time_str, msg_number)
                 logging.info(f"[{channel_id}] Rocket exploded. Reason: {reason}.")
 
             if msg_type == "RocketMissionChanged":
-                rocket = self.rockets_fleet[channel_id]
                 new_mission = payload.get("newMission")
-                rocket.update_mission(new_mission)
-                rocket.last_update_time = datetime.fromisoformat(msg_time_str)
-                rocket.last_message_number = msg_number
+                rocket.update_mission(new_mission, msg_time_str, msg_number)
                 logging.info(f"[{channel_id}] Mission changed to {new_mission}.")
 
             # Process buffered messages
-            # A heapq is sorted, so we can just check the first element
             if rocket.message_buffer: # Check if the buffer is not empty
                 logging.debug(f"[{channel_id}] Message(s) in buffer. Processing next message.")
+                # A heap is sorted, so we can just check the first element
                 buffered_msg_number, buffered_message = rocket.message_buffer[0]
                 if buffered_msg_number == rocket.last_message_number + 1:
                     rocket.pop_message_from_buffer()
@@ -123,7 +112,7 @@ class ControlCenter:
         Returns:
             list[dict]: A list of rocket dictionaries that can be JSON serialized
         """
-        with self.lock:
+        with self.fleet_lock:
         
             sorted_rockets = sorted(
                 self.rockets_fleet.values(),
@@ -138,7 +127,7 @@ class ControlCenter:
         Returns:
             list[str]: A list of unique mission names, sorted alphabetically
         """
-        with self.lock:
+        with self.fleet_lock:
             missions = {rocket.mission for rocket in self.rockets_fleet.values()}
             return sorted(list(missions))
     
@@ -152,7 +141,7 @@ class ControlCenter:
         Returns:
             list[dict]: A list of rocket dictionaries assigned to the mission, ordered by launch time
         """
-        with self.lock:
+        with self.fleet_lock:
             mission_rockets = [
                 rocket for rocket in self.rockets_fleet.values() 
                 if rocket.mission.lower() == mission.lower()
@@ -170,6 +159,6 @@ class ControlCenter:
         Returns:
             dict | None: The rocket details as a dictionary, or None if not found.
         """
-        with self.lock:
+        with self.fleet_lock:
             rocket = self.rockets_fleet.get(rocket_id)
             return rocket.to_dict() if rocket else None
