@@ -4,4 +4,5 @@ launch_rockets:
 start_server:
 	python3 server.py
 
-
+test:
+	python -m unittest -v

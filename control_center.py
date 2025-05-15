@@ -9,101 +9,132 @@ class ControlCenter:
         self.fleet_lock = threading.Lock()
 
     def process_incoming_message(self, message: any):
-        """
-        Processes incoming messages from the API server.
-        """
+        """Processes incoming messages from the API server."""
+        if not self._validate_message(message):
+            return
 
-        metadata = message.get("metadata", {})
-        payload = message.get("message", {})
+        metadata, payload = message.get("metadata", {}), message.get("message", {})
 
         channel_id = metadata.get("channel")
         msg_number = metadata.get("messageNumber")
         msg_type = metadata.get("messageType")
         msg_time_str = metadata.get("messageTime")
 
-        if not all([channel_id, isinstance(msg_number, int), msg_type, msg_time_str]):
-            logging.error(f"Invalid message structure: {message}")
-            return
-        
         with self.fleet_lock:
-            rocket = self.rockets_fleet.get(channel_id)
-
-        # If rocket doesn't exist yet, and it is being Launched, and should be added to the fleet
-        if not rocket and msg_type == "RocketLaunched":
-            rocket = Rocket(
-                id=channel_id, 
-                launch_time = msg_time_str, 
-                last_update_time = msg_time_str, 
-                last_message_number= metadata.get("messageNumber"),
-                speed = payload.get("launchSpeed"),
-                rocket_type = payload.get("type"),
-                mission = payload.get("mission")
-            )
-            
-            # Add rocket to fleet
-            with self.fleet_lock:
-                self.rockets_fleet[channel_id] = rocket
-            logging.info(f"Rocket {channel_id} added to fleet.")
-
-            return
-
-        if not rocket:
-            logging.warning(f"[{channel_id}] No rocket found and message is not RocketLaunched ({msg_type}). Cannot process yet.")
-            return  # Don't try to append to buffer if rocket doesn't exist #TODO: FIx this, or message will be lost
+            rocket = self._get_or_create_rocket(channel_id, msg_type, metadata, payload)
+            if not rocket:
+                return
 
         with rocket.lock:
-
-            # Ignore old messages (duplicates)
-            if msg_number <= rocket.last_message_number:
-                logging.warning(f"[{channel_id}] Message {msg_number} is too old. Ignoring.")
+            if self._should_ignore_message(rocket, msg_number):
                 return
-            
-            # If the message is out of order, buffer it
+
             if msg_number > rocket.last_message_number + 1:
-                logging.info(f"[{channel_id}] Waiting for message {rocket.last_message_number + 1}. Message {msg_number} is added to buffer.")
-                # Check if message is already in buffer
-                for buffered_msg_number, _ in rocket.message_buffer:
-                    if buffered_msg_number == msg_number:
-                        logging.info(f"[{channel_id}] Message number {msg_number} is already in buffer. Ignoring.")
-                        return
-                # Append to buffer
-                rocket.append_message_to_buffer(msg_number, message)
+                self._buffer_message(rocket, msg_number, message)
                 return
-            
-            # If we reach this point, it means the message is in order, it can be processed
-            logging.debug(f"[{channel_id}] Processing message {msg_number}")
 
-            if msg_type == "RocketSpeedIncreased":
-                speed_increment = payload.get("by")
-                rocket.increase_speed(speed_increment, msg_time_str, msg_number)
-                logging.info(f"[{channel_id}] Speed increased by {speed_increment}. New speed: {rocket.speed}.")
+            self._process_message(rocket, msg_type, payload, msg_time_str, msg_number)
+            self._process_buffered_messages(rocket)
 
-            if msg_type == "RocketSpeedDecreased":
-                speed_decrement = payload.get("by")
-                rocket.decrease_speed(speed_decrement, msg_time_str, msg_number)
-                logging.info(f"[{channel_id}] Speed decreased by {speed_decrement}. New speed: {rocket.speed}.")
-            
-            if msg_type == "RocketExploded":
-                reason = payload.get("reason")
-                rocket.explode(reason, msg_time_str, msg_number)
-                logging.info(f"[{channel_id}] Rocket exploded. Reason: {reason}.")
+    def _validate_message(self, message: dict) -> bool:
+        """Validates message structure and required fields."""
+        metadata = message.get("metadata", {})
+        return all([
+            metadata.get("channel"),
+            isinstance(metadata.get("messageNumber"), int),
+            metadata.get("messageType"),
+            metadata.get("messageTime")
+        ])
 
-            if msg_type == "RocketMissionChanged":
-                new_mission = payload.get("newMission")
-                rocket.update_mission(new_mission, msg_time_str, msg_number)
-                logging.info(f"[{channel_id}] Mission changed to {new_mission}.")
+    def _get_or_create_rocket(self, channel_id: str, msg_type: str, 
+                            metadata: dict, payload: dict) -> Rocket | None:
+        """Gets existing rocket or creates new one if it's a launch message."""
+        rocket = self.rockets_fleet.get(channel_id)
+        if not rocket and msg_type == "RocketLaunched":
+            rocket = self._create_new_rocket(channel_id, metadata, payload)
+            self.rockets_fleet[channel_id] = rocket
+            logging.info(f"Rocket {channel_id} added to fleet.")
+        return rocket
 
-            # Process buffered messages
-            if rocket.message_buffer: # Check if the buffer is not empty
-                logging.debug(f"[{channel_id}] Message(s) in buffer. Processing next message.")
-                # A heap is sorted, so we can just check the first element
-                buffered_msg_number, buffered_message = rocket.message_buffer[0]
-                if buffered_msg_number == rocket.last_message_number + 1:
-                    rocket.pop_message_from_buffer()
-                    self.process_incoming_message(buffered_message)
-                else:
-                    logging.debug(f"[{channel_id}] Next message in buffer is not ready yet. Waiting for message {rocket.last_message_number + 1}.")
-                    return
+    def _create_new_rocket(self, channel_id: str, metadata: dict, payload: dict) -> Rocket:
+        """Creates a new rocket instance."""
+        return Rocket(
+            id=channel_id,
+            launch_time=metadata.get("messageTime"),
+            last_update_time=metadata.get("messageTime"),
+            last_message_number=metadata.get("messageNumber"),
+            speed=payload.get("launchSpeed"),
+            rocket_type=payload.get("type"),
+            mission=payload.get("mission")
+        )
+
+    def _should_ignore_message(self, rocket: Rocket, msg_number: int) -> bool:
+        """Determines if message should be ignored based on message number."""
+        if msg_number <= rocket.last_message_number:
+            logging.warning(f"[{rocket.id}] Message {msg_number} is too old. Ignoring.")
+            return True
+        return False
+
+    def _buffer_message(self, rocket: Rocket, msg_number: int, message: dict):
+        """Buffers out-of-order message if not already buffered."""
+        for buffered_msg_number, _ in rocket.message_buffer:
+            if buffered_msg_number == msg_number:
+                logging.info(f"[{rocket.id}] Message {msg_number} already buffered. Ignoring.")
+                return
+        rocket.append_message_to_buffer(msg_number, message)
+        logging.info(f"[{rocket.id}] Message {msg_number} added to buffer.")
+
+    def _process_message(self, rocket: Rocket, msg_type: str, 
+                        payload: dict, msg_time_str: str, msg_number: int):
+        """Processes message based on its type."""
+        handlers = {
+            "RocketSpeedIncreased": self._handle_speed_increase,
+            "RocketSpeedDecreased": self._handle_speed_decrease,
+            "RocketExploded": self._handle_explosion,
+            "RocketMissionChanged": self._handle_mission_change
+        }
+        if handler := handlers.get(msg_type):
+            handler(rocket, payload, msg_time_str, msg_number)
+
+    def _handle_speed_increase(self, rocket: Rocket, payload: dict, 
+                             msg_time_str: str, msg_number: int):
+        """Handles speed increase message."""
+        speed_increment = payload.get("by")
+        rocket.increase_speed(speed_increment, msg_time_str, msg_number)
+        logging.info(f"[{rocket.id}] Speed increased by {speed_increment}. New speed: {rocket.speed}.")
+
+    def _handle_speed_decrease(self, rocket: Rocket, payload: dict, 
+                             msg_time_str: str, msg_number: int):
+        """Handles speed decrease message."""
+        speed_decrement = payload.get("by")
+        rocket.decrease_speed(speed_decrement, msg_time_str, msg_number)
+        logging.info(f"[{rocket.id}] Speed decreased by {speed_decrement}. New speed: {rocket.speed}.")
+
+    def _handle_explosion(self, rocket: Rocket, payload: dict, 
+                         msg_time_str: str, msg_number: int):
+        """Handles explosion message."""
+        reason = payload.get("reason")
+        rocket.explode(reason, msg_time_str, msg_number)
+        logging.info(f"[{rocket.id}] Rocket exploded. Reason: {reason}.")
+
+    def _handle_mission_change(self, rocket: Rocket, payload: dict, 
+                             msg_time_str: str, msg_number: int):
+        """Handles mission change message."""
+        new_mission = payload.get("newMission")
+        rocket.update_mission(new_mission, msg_time_str, msg_number)
+        logging.info(f"[{rocket.id}] Mission changed to {new_mission}.")
+
+    def _process_buffered_messages(self, rocket: Rocket):
+        """Processes any buffered messages that are now ready."""
+        # Check if there is a message in the buffer
+        if not rocket.message_buffer:
+            return
+        
+        # A heap is used, so root of the list is the message with the smallest message number
+        buffered_msg_number, buffered_message = rocket.message_buffer[0]
+        if buffered_msg_number == rocket.last_message_number + 1:
+            rocket.pop_message_from_buffer()
+            self.process_incoming_message(buffered_message)
 
     def list_rockets_in_fleet(self) -> list[dict]:
         """
